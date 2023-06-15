@@ -1,5 +1,4 @@
 import requests
-import json
 
 from credential import X_RapidAPI_Host, X_RapidAPI_Key
 
@@ -38,28 +37,36 @@ def search_cities(city):
     return result
 
 
-def search_hotels(city_id, hotels_count, photo_count):
+def search_hotels(city_id, hotels_count, photo_count, begin, end, order):
     endpoint = 'properties/v2/list'
     headers = {
         'X-RapidAPI-Key': X_RapidAPI_Key,
         'X-RapidAPI-Host': X_RapidAPI_Host,
     }
+    if order == 'low':
+        order = 'PRICE_LOW_TO_HIGH'
+    elif order == 'high':
+        order = 'PRICE_HIGH_TO_LOW'
+    elif order == 'center':
+        order = 'DISTANCE'
+    else:
+        order = ''
     data = {
         "currency": "USD",
         "eapid": 1,
         "resultsSize": int(hotels_count),
         "locale": "ru_RU",
         "siteId": 300000001,
-        "destination": { "regionId": city_id },
+        "destination": {"regionId": city_id},
         "checkInDate": {
-            "day": 10,
-            "month": 6,
-            "year": 2023
+            "day": begin.day,
+            "month": begin.month,
+            "year": begin.year,
         },
         "checkOutDate": {
-            "day": 20,
-            "month": 6,
-            "year": 2023
+            "day": end.day,
+            "month": end.month,
+            "year": end.year,
         },
         "rooms": [
             {
@@ -67,7 +74,7 @@ def search_hotels(city_id, hotels_count, photo_count):
                 "children": []
             }
         ],
-        "sort": "PRICE_LOW_TO_HIGH"
+        "sort": order
     }
     response = requests.post(
         url='https://{}/{}'.format(X_RapidAPI_Host, endpoint),
@@ -75,31 +82,48 @@ def search_hotels(city_id, hotels_count, photo_count):
         json=data,
     )
 
-    with open('1.json', 'w') as f:
-        f.write(json.dumps(response.json(), indent=4))
-
     hotels = response.json()
     hotels = hotels['data']['propertySearch']['properties']
 
-
-
     result = []
     for hotel in hotels:
+        hotel_id = hotel['id']
+        photos, address = get_hotel_details(hotel_id, photo_count)
         result.append(
             {
                 'name': hotel['name'],
-                'id': hotel['id'],
+                'id': hotel_id,
                 'price': hotel['price']['options'][0]['formattedDisplayPrice'],
-                'address': 'адрес',
-                'center_dest': 'как далеко от центра',
-                'photos': [
-                    'https://www.momondo.com/himg/08/21/f5/leonardo-2684146-Exterior_O-202639.jpg',
-                    'https://cdn.worldota.net/t/1024x768/content/b9/2e/b92e343f087293fe6c5274f508825ae129862864.jpeg',
-                ]
+                'address': address,
+                'center_dest': '{} {}'.format(
+                    hotel['destinationInfo']['distanceFromDestination']['value'],
+                    hotel['destinationInfo']['distanceFromDestination']['unit'],
+                ),
+                'photos': photos,
             }
         )
-
     return result
 
 
+def get_hotel_details(hotel_id, photo_count):
+    endpoint = 'properties/v2/detail'
+    headers = {
+        'X-RapidAPI-Key': X_RapidAPI_Key,
+        'X-RapidAPI-Host': X_RapidAPI_Host,
+    }
+    data = {
+        "propertyId": str(hotel_id),
+    }
+    response = requests.post(
+        url='https://{}/{}'.format(X_RapidAPI_Host, endpoint),
+        headers=headers,
+        json=data,
+    )
+    details = response.json()
+    photos = details['data']['propertyInfo']['propertyGallery']['images']
+    address = details['data']['propertyInfo']['summary']['location']['address']['addressLine']
+    return [photo['image']['url'] for photo in photos][:int(photo_count)], address
 
+
+if __name__ == '__main__':
+    print(get_hotel_details('89021335', 2))
