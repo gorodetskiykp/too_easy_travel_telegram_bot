@@ -89,6 +89,7 @@ def search_hotels(city_id, hotels_count, photo_count, begin, end, order):
     for hotel in hotels:
         hotel_id = hotel['id']
         photos, address = get_hotel_details(hotel_id, photo_count)
+        hotel_dest = hotel['destinationInfo']['distanceFromDestination']
         result.append(
             {
                 'name': hotel['name'],
@@ -96,8 +97,8 @@ def search_hotels(city_id, hotels_count, photo_count, begin, end, order):
                 'price': hotel['price']['options'][0]['formattedDisplayPrice'],
                 'address': address,
                 'center_dest': '{} {}'.format(
-                    hotel['destinationInfo']['distanceFromDestination']['value'],
-                    hotel['destinationInfo']['distanceFromDestination']['unit'],
+                    hotel_dest['value'],
+                    hotel_dest['unit'],
                 ),
                 'photos': photos,
             }
@@ -121,8 +122,10 @@ def get_hotel_details(hotel_id, photo_count):
     )
     details = response.json()
     photos = details['data']['propertyInfo']['propertyGallery']['images']
-    address = details['data']['propertyInfo']['summary']['location']['address']['addressLine']
-    return [photo['image']['url'] for photo in photos][:int(photo_count)], address
+    location = details['data']['propertyInfo']['summary']['location']
+    address = location['address']['addressLine']
+    return ([photo['image']['url'] for photo in photos][:int(photo_count)],
+            address)
 
 
 if __name__ == '__main__':

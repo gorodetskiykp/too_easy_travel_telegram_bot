@@ -24,7 +24,8 @@ def help_handler(message):
     msg = [
         '/lowprice - топ самых дешёвых отелей в городе',
         '/highprice - топ самых дорогих отелей в городе',
-        '/bestdeal -  топ отелей, наиболее подходящих по цене и расположению от центра',
+        ('/bestdeal -  топ отелей, наиболее подходящих по'
+         'цене и расположению от центра'),
         '/history - история поиска отелей',
     ]
     bot.send_message(message.from_user.id, '\n'.join(msg))
@@ -80,7 +81,10 @@ def callback(call):
 
 
 def get_calendar(message, data):
-    bot.send_message(message.chat.id, 'Укажите даты прибытия и выезда в формате\nДД.ММ.ГГГГ-ДД.ММ.ГГГГ')
+    bot.send_message(
+        message.chat.id,
+        'Укажите даты прибытия и выезда в формате\nДД.ММ.ГГГГ-ДД.ММ.ГГГГ',
+    )
     bot.register_next_step_handler(message, get_hotels_count, data)
 
 
@@ -141,7 +145,8 @@ def get_hotel_photo_count(message, data):
 
 def check_hotel_photo_count(message, data):
     if message.text.isdigit() and int(message.text) >= 0:
-        data['hotel_photo_count'] = min(int(message.text), HOTEL_PHOTO_COUNT_LIMIT)
+        data['hotel_photo_count'] = min(int(message.text),
+                                        HOTEL_PHOTO_COUNT_LIMIT)
         get_hotels(message, data)
     else:
         bot.send_message(message.from_user.id, 'Введите положительное число!')
@@ -190,8 +195,9 @@ def log(message, data, hotels):
     hotels = '; '.join(hotels)
     connection = sqlite3.connect('data.db')
     with connection:
-        query = 'INSERT INTO HISTORY (chat_id, command, hotels) VALUES ({}, "{}", "{}")'.format(
-            message.chat.id, command, hotels)
+        query = ('INSERT INTO HISTORY (chat_id, command, hotels)'
+                 'VALUES ({}, "{}", "{}")'.format(
+                    message.chat.id, command, hotels))
         connection.execute(query)
 
 
@@ -199,8 +205,8 @@ def log(message, data, hotels):
 def history_handler(message):
     connection = sqlite3.connect('data.db')
     with connection:
-        query = 'SELECT command, datetime(timestamp, "localtime"), hotels FROM HISTORY WHERE chat_id={}'.format(
-            message.chat.id)
+        query = ('SELECT command, datetime(timestamp, "localtime"), hotels'
+                 'FROM HISTORY WHERE chat_id={}'.format(message.chat.id))
         cursor = connection.cursor()
         cursor.execute(query)
         rows = cursor.fetchall()
